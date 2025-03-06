@@ -1,38 +1,114 @@
+/// This program performs operations on a target directory specified by the user.
+/// The available operations are:
+/// - `tree`: Prints the directory tree of the target directory.
+/// - `flatten`: Flatten the directory structure.
+/// - `duplicates`: Find duplicate files in the directory.
+///
+/// # Usage
+/// ```sh
+/// cargo run <operation> <target_directory>
+/// ```
+///
+/// # Arguments
+/// - `<operation>`: The operation to perform. Can be `tree`, `flatten`, or `duplicates`.
+/// - `<target_directory>`: The path to the target directory.
+///
 use std::path::{Path, PathBuf};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    if args.len() < 2 {
-        eprintln!("Usage: cargo run <target_directory>");
+    if args.len() < 3 {
+        eprintln!("Usage: cargo run <operation>");
         std::process::exit(1);
     }
 
-    let target_directory: &str = args[1].as_str();
-    let target_path: &Path = Path::new(target_directory);
+    let operation: &str = args[1].as_str();
+    let target_directory: &str = args[2].as_str();
 
-    if !target_path.exists() {
-        eprintln!("The target directory does not exist.");
-        std::process::exit(1);
-    }
-    if !target_path.is_dir() {
-        eprintln!("The target directory is not a directory.");
+    if !Path::new(target_directory).exists() {
+        eprintln!("Target directory does not exist.");
         std::process::exit(1);
     }
 
-    let files = get_dir_tree(&target_path);
+    if operation == "tree" {
+        handle_tree(target_directory);
+    } else if operation == "flatten" {
+        if args.len() < 4 {
+            eprintln!("Usage: cargo run flatten <target_directory> <destination_directory>");
+            std::process::exit(1);
+        }
 
+        let destination_directory = args[3].as_str();
+
+        if !Path::new(destination_directory).exists() {
+            std::fs::create_dir(destination_directory).unwrap();
+        }
+
+        handle_flatten(target_directory, destination_directory);
+    } else if operation == "duplicates" {
+        handle_duplicates(target_directory);
+    } else {
+        eprintln!("Unknown operation: {}", operation);
+        std::process::exit(1);
+    }
+}
+
+// Prints the directory tree of the target directory.
+fn handle_tree(target_directory: &str) {
+    let target_directory = Path::new(target_directory);
+    let files = get_dir_tree(target_directory);
+    let file_len = files.len();
+    for file in files {
+        let relative_path = file.strip_prefix(target_directory).unwrap();
+        println!("{}", relative_path.display());
+    }
     println!(
         "Found {} files in directory '{}'",
-        files.len(),
-        target_directory
+        file_len,
+        target_directory.display()
     );
-    for file_path in files.iter() {
-        let mut path_string: String = file_path.display().to_string();
-        path_string = path_string.replacen(target_directory, "", 1);
+}
 
-        if file_path.is_dir() {
-            println!("{}", path_string);
+// Flatten the directory structure.
+fn handle_flatten(target_directory: &str, destination_directory: &str) {
+    // copy all files from the target directory to the destination directory.
+    let files = get_dir_tree(Path::new(target_directory));
+    for file in files {
+        if file.is_dir() {
+            continue;
+        }
+
+        let file_name = file.file_name().unwrap();
+        let destination = Path::new(destination_directory).join(file_name);
+
+        if destination.exists() {
+            println!(
+                "File already exists in destination: {}",
+                destination.display()
+            );
+            continue;
+        }
+
+        let result = std::fs::copy(&file, &destination);
+        if let Err(error) = result {
+            eprintln!("Error copying file: {:?}", error);
+        }
+    }
+}
+
+// Find duplicate files in the directory.
+fn handle_duplicates(target_directory: &str) {
+    let files = get_dir_tree(Path::new(target_directory));
+    let mut file_map: std::collections::HashMap<u64, Vec<PathBuf>> =
+        std::collections::HashMap::new();
+
+    // Find duplicate files by size
+    for file in files {
+        if file.is_dir() {
+            continue;
+        
+
         }
     }
 }
