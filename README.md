@@ -1,7 +1,7 @@
 This program performs operations on a target directory specified by the user.
 The available operations are:
 - `tree`: Prints the directory tree of the target directory.
-- `flatten`: Flatten the directory structure.
+- `flatten`: Flatten the directory structure.d
 - `duplicates`: Find duplicate files in the directory.
 # Usage
 ```sh
